@@ -1,0 +1,23 @@
+package dao
+
+import (
+	"context"
+
+	"gorm.io/gorm"
+)
+
+// ExampleDao 示例 DAO，演示在 gorm_gen 生成代码之前的原始 gorm 访问方式。
+// 生成 model/query 后，建议改为使用 infra/mysql/query 中的类型安全查询。
+type ExampleDao struct {
+	db *gorm.DB
+}
+
+// NewExampleDao 创建示例 DAO。
+func NewExampleDao(db *gorm.DB) *ExampleDao {
+	return &ExampleDao{db: db}
+}
+
+// Ping 检测数据库连通性。
+func (d *ExampleDao) Ping(ctx context.Context) error {
+	return d.db.WithContext(ctx).Exec("SELECT 1").Error
+}

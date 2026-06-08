@@ -1,0 +1,8 @@
+package rpc
+
+// InitRpcClient 初始化所有 RPC 客户端。
+// 在 main 中 wireApp 完成后调用，确保 Nacos 注册中心已就绪。
+func InitRpcClient() {
+	initUserClient()
+	initSportsMetaClient()
+}

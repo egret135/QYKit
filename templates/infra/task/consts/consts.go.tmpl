@@ -1,0 +1,9 @@
+package consts
+
+// Alias 为该服务在 Nacos 中对应的 asynq(redis) 配置别名，按实际情况修改。
+const Alias = "[[.AppName]]"
+
+const (
+	// ExampleTask 示例异步任务名，投递与消费需保持一致。
+	ExampleTask = "[[.AppName]]:example"
+)

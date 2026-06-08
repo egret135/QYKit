@@ -1,0 +1,57 @@
+//go:build wireinject
+// +build wireinject
+
+// The build tag makes sure the stub is not built in the final build.
+
+package main
+
+import (
+	"github.com/go-kratos/kratos/v2"
+	"github.com/google/wire"
+
+	"[[.Module]]/biz/app"
+	"[[.Module]]/biz/cron"
+	"[[.Module]]/biz/domain"
+	"[[.Module]]/biz/handler"
+	"[[.Module]]/infra/conf"
+	"[[.Module]]/infra/logger"
+	"[[.Module]]/infra/metrics"
+	"[[.Module]]/infra/mongoDB"
+	mongoDao "[[.Module]]/infra/mongoDB/dao"
+	mysqlDao "[[.Module]]/infra/mysql/dao"
+	"[[.Module]]/infra/nacos"
+	"[[.Module]]/infra/rabbitmq"
+	rabbitConsumer "[[.Module]]/infra/rabbitmq/consumer"
+	rabbitProducer "[[.Module]]/infra/rabbitmq/producer"
+	"[[.Module]]/infra/redis"
+	"[[.Module]]/infra/task"
+	taskConsumer "[[.Module]]/infra/task/consumer"
+	asynqProducer "[[.Module]]/infra/task/producer"
+	"[[.Module]]/server"
+)
+
+// wireApp 初始化 Kratos 应用（Task 服务，消费者侧）。
+func wireApp() (*kratos.App, func(), error) {
+	panic(wire.Build(
+		conf.ConfSet,
+		logger.LoggerSet,
+		metrics.NewMetrics,
+		nacos.RegistrarSet,
+		mysqlDao.DaoSet,
+		mongoDB.MongoDaoSet,
+		mongoDao.MongoDaoSet,
+		redis.NewRedisClient,
+		rabbitmq.NewRabbitMQ,
+		rabbitProducer.ProducerProviderSet,
+		rabbitConsumer.ConsumerSet,
+		task.TaskSet,
+		asynqProducer.ProducerSet,
+		taskConsumer.ConsumerSet,
+		cron.CronSet,
+		domain.ServiceSet,
+		app.AppSet,
+		handler.HandlerSet,
+		server.ServerSet,
+		newApp,
+	))
+}

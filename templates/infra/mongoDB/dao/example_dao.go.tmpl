@@ -1,0 +1,22 @@
+package dao
+
+import (
+	"context"
+
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+// ExampleMongoDao 示例 MongoDB DAO。
+type ExampleMongoDao struct {
+	db *mongo.Database
+}
+
+// NewExampleMongoDao 创建示例 MongoDB DAO。
+func NewExampleMongoDao(db *mongo.Database) *ExampleMongoDao {
+	return &ExampleMongoDao{db: db}
+}
+
+// Ping 检测 MongoDB 连通性。
+func (d *ExampleMongoDao) Ping(ctx context.Context) error {
+	return d.db.Client().Ping(ctx, nil)
+}

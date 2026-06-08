@@ -1,0 +1,11 @@
+package consts
+
+const (
+	// TopicExchange 业务统一使用的 topic 交换机名，按实际情况修改。
+	TopicExchange = "[[.AppName]].topic"
+
+	// ExampleRoutingKey 示例消息的 routing key。
+	ExampleRoutingKey = "[[.AppName]].example"
+	// ExampleQueueName 示例消息的队列名。
+	ExampleQueueName = "[[.AppName]].example.queue"
+)

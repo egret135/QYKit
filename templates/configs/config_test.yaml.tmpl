@@ -1,0 +1,20 @@
+namespace: public
+server:
+  server_name: [[.ServerName]]
+  http:
+    addr: 0.0.0.0:${HTTP_PORT}
+    timeout: 10s
+  grpc:
+    addr: 0.0.0.0:${RPC_PORT}
+    timeout: 10s
+nacos:
+  registrar:
+    ip_address: ${NACOS_IP_ADDRESS}
+    port: ${NACOS_PORT}
+  confCenter:
+    ip_address: ${NACOS_CONF_IP_ADDRESS}
+    port: ${NACOS_CONF_PORT}
+  namespace_id: ${NACOS_NAMESPACE_ID}
+  log_level: warn
+log:
+  debug: false

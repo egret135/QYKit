@@ -1,0 +1,68 @@
+package metrics
+
+import (
+	"context"
+	"strconv"
+	"time"
+
+	"github.com/go-kratos/kratos/v2/errors"
+	"github.com/go-kratos/kratos/v2/middleware"
+	"github.com/go-kratos/kratos/v2/transport"
+	kratos_http "github.com/go-kratos/kratos/v2/transport/http"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+)
+
+// HTTPOtelMetrics HTTP OTel 指标中间件。
+func HTTPOtelMetrics() middleware.Middleware {
+	return func(handler middleware.Handler) middleware.Handler {
+		return func(ctx context.Context, req interface{}) (interface{}, error) {
+			var (
+				method string
+				path   string
+			)
+
+			if tr, ok := transport.FromServerContext(ctx); ok {
+				if ht, ok := tr.(*kratos_http.Transport); ok {
+					method = ht.Request().Method
+					path = ht.PathTemplate()
+					if path == "" {
+						path = ht.Request().URL.Path
+					}
+				}
+			}
+
+			attrs := []attribute.KeyValue{
+				attribute.String("method", method),
+				attribute.String("path", path),
+			}
+
+			if HTTPRequestsInFlight != nil {
+				HTTPRequestsInFlight.Add(ctx, 1, metric.WithAttributes(attrs...))
+				defer HTTPRequestsInFlight.Add(ctx, -1, metric.WithAttributes(attrs...))
+			}
+
+			startTime := time.Now()
+			reply, err := handler(ctx, req)
+			duration := time.Since(startTime).Seconds()
+
+			statusCode := "200"
+			if err != nil {
+				statusCode = "500"
+				if se := errors.FromError(err); se != nil {
+					statusCode = strconv.Itoa(int(se.Code))
+				}
+			}
+
+			finalAttrs := append(attrs, attribute.String("status_code", statusCode))
+			if HTTPRequestCounter != nil {
+				HTTPRequestCounter.Add(ctx, 1, metric.WithAttributes(finalAttrs...))
+			}
+			if HTTPRequestDuration != nil {
+				HTTPRequestDuration.Record(ctx, duration, metric.WithAttributes(finalAttrs...))
+			}
+
+			return reply, err
+		}
+	}
+}

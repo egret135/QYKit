@@ -1,0 +1,24 @@
+package mysql
+
+import (
+	"[[.Module]]/infra/mysql/query"
+	mysqlSDK "glprivate.quanyougame.net/backend/core-sdk-go/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+)
+
+// alias 为该服务在 Nacos 中对应的 MySQL 配置别名，按实际情况修改。
+const alias = "[[.AppName]]"
+
+// NewMySQL 创建业务库 gorm.DB 连接，并设置 query 默认 DB。
+func NewMySQL() *gorm.DB {
+	db, err := mysqlSDK.NewMySQLWithGlobalConfig(alias, &gorm.Config{
+		TranslateError: true,
+		Logger:         logger.Default.LogMode(logger.Info),
+	})
+	if err != nil {
+		panic(err)
+	}
+	query.SetDefault(db)
+	return db
+}

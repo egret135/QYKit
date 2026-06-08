@@ -1,0 +1,19 @@
+package consts
+
+// 在此集中定义业务常量。
+
+const (
+	// AppName 服务短名。
+	AppName = "[[.AppName]]"
+
+	// CronAlias XXL-Job 在 Nacos 中的配置别名，按实际情况修改。
+	CronAlias = "qy.kbfs.xxljob"
+	// CronAppName XXL-Job 执行器 AppName，需在调度中心注册。
+	CronAppName = "[[.AppName]]"
+
+	CronSuccess = "success"
+	CronFailed  = "failed"
+
+	// ExampleCronTaskName 示例定时任务名，与 XXL-Job 调度中心 JobHandler 保持一致。
+	ExampleCronTaskName = "[[.AppName]]:example"
+)

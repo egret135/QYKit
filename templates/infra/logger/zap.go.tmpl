@@ -1,0 +1,28 @@
+package logger
+
+import (
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/google/wire"
+	"glprivate.quanyougame.net/backend/core-sdk-go/zaplog"
+
+	"[[.Module]]/infra/conf"
+)
+
+var l log.Logger
+
+// LoggerSet 日志相关的 wire provider 集合。
+var LoggerSet = wire.NewSet(NewLogger)
+
+// NewLogger 基于 core-sdk-go/zaplog 构造全局日志器，并接管 kratos 默认日志。
+func NewLogger(cfg *conf.Bootstrap) log.Logger {
+	var err error
+	l, err = zaplog.NewLogger(&zaplog.LoggerConfig{
+		ServerName:  cfg.Server.ServerName,
+		Development: cfg.Log.Debug,
+		FilePath:    cfg.Log.LogPath,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return l
+}

@@ -1,0 +1,38 @@
+package task
+
+import (
+	"github.com/google/wire"
+	"glprivate.quanyougame.net/backend/core-sdk-go/task"
+	"glprivate.quanyougame.net/backend/core-sdk-go/zaplog"
+	"go.uber.org/zap"
+
+	taskConsts "[[.Module]]/infra/task/consts"
+)
+
+// TaskSet asynq 任务客户端/服务端 wire provider 集合。
+var TaskSet = wire.NewSet(
+	NewTaskClient,
+	NewTaskServer,
+)
+
+// NewTaskClient 创建 asynq 任务客户端（生产者，底层基于 redis）。
+func NewTaskClient() (*task.TaskClient, error) {
+	client, err := task.NewTaskClient(taskConsts.Alias)
+	if err != nil {
+		zaplog.Log().Error("failed to create task client", zap.Error(err))
+		return nil, err
+	}
+	zaplog.Log().Info("task client initialized successfully")
+	return client, nil
+}
+
+// NewTaskServer 创建 asynq 任务服务器（消费者，底层基于 redis）。
+func NewTaskServer() (*task.TaskServer, error) {
+	server, err := task.NewTaskServer(taskConsts.Alias, nil)
+	if err != nil {
+		zaplog.Log().Error("failed to create task server", zap.Error(err))
+		return nil, err
+	}
+	zaplog.Log().Info("task server initialized successfully")
+	return server, nil
+}

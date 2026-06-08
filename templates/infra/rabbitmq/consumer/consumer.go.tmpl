@@ -1,0 +1,66 @@
+package consumer
+
+import (
+	"encoding/json"
+
+	"github.com/google/wire"
+	sdkRabbitMQ "glprivate.quanyougame.net/backend/core-sdk-go/rabbitmq"
+	"glprivate.quanyougame.net/backend/core-sdk-go/zaplog"
+	"go.uber.org/zap"
+
+	"[[.Module]]/infra/rabbitmq/consts"
+	"[[.Module]]/infra/rabbitmq/producer"
+)
+
+// ConsumerSet rabbitmq 消费者 wire provider 集合。
+var ConsumerSet = wire.NewSet(NewConsumer)
+
+// Consumer RabbitMQ 消费者，统一在此注册并启动各业务队列。
+type Consumer struct {
+	rabbitMQ *sdkRabbitMQ.RabbitMQ
+}
+
+// NewConsumer 创建消费者并注册全部队列。
+func NewConsumer(mq *sdkRabbitMQ.RabbitMQ) *Consumer {
+	c := &Consumer{rabbitMQ: mq}
+	c.init()
+	return c
+}
+
+// init 注册当前服务需要消费的全部 RabbitMQ 队列。
+func (q *Consumer) init() {
+	// --- register your consumer function here
+	go func() {
+		defer q.recover()
+		_ = q.rabbitMQ.Exchange(consts.TopicExchange).
+			RoutingKey(consts.ExampleRoutingKey).
+			Queue(consts.ExampleQueueName).
+			WithWorkers(4).
+			ConsumeFn(q.ExampleHandler)
+	}()
+
+	zaplog.Log().Info("rabbitmq queue started...")
+}
+
+// ExampleHandler 处理示例消息。
+func (q *Consumer) ExampleHandler(m *sdkRabbitMQ.ConsumeMessage) error {
+	defer q.recover()
+	log := zaplog.Log(m.Ctx)
+
+	var msg producer.ExampleMessage
+	if err := json.Unmarshal(m.Body, &msg); err != nil {
+		log.Error("failed to unmarshal example message", zap.Error(err))
+		return err
+	}
+
+	log.Info("consume example message", zap.Int64("id", msg.ID), zap.String("name", msg.Name))
+	// TODO: 在此编写你的业务处理逻辑。
+	return nil
+}
+
+// recover 兜底捕获消费者 goroutine 的 panic，避免线程退出。
+func (q *Consumer) recover() {
+	if r := recover(); r != nil {
+		zaplog.Log().Error("recover panic", zap.Any("recover", r))
+	}
+}

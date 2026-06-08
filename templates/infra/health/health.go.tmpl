@@ -1,0 +1,15 @@
+package health
+
+import (
+	"net/http"
+
+	kratos_http "github.com/go-kratos/kratos/v2/transport/http"
+)
+
+// RegisterHealthHTTP 注册健康检查路由。
+func RegisterHealthHTTP(srv *kratos_http.Server) {
+	srv.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("success\n"))
+	})
+}

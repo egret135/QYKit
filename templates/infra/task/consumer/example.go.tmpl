@@ -1,0 +1,40 @@
+package consumer
+
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/hibiken/asynq"
+	"glprivate.quanyougame.net/backend/core-sdk-go/zaplog"
+	"go.uber.org/zap"
+
+	taskProducer "[[.Module]]/infra/task/producer"
+)
+
+// ExampleConsumer 处理示例异步任务。
+type ExampleConsumer struct{}
+
+// NewExampleConsumer 创建示例任务消费者。
+func NewExampleConsumer() *ExampleConsumer {
+	return &ExampleConsumer{}
+}
+
+// Consume 实现 asynq 任务处理接口。
+func (c *ExampleConsumer) Consume(ctx context.Context, task *asynq.Task) error {
+	log := zaplog.Log(ctx)
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("example task consumer panic", zap.Any("panic", r))
+		}
+	}()
+
+	var payload taskProducer.ExamplePayload
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		log.Error("unmarshal example task payload failed", zap.Error(err))
+		return err
+	}
+
+	log.Info("consume example task", zap.Int64("id", payload.ID), zap.String("name", payload.Name))
+	// TODO: 在此编写你的业务处理逻辑。
+	return nil
+}

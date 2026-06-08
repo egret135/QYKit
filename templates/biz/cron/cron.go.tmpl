@@ -1,0 +1,54 @@
+package cron
+
+import (
+	"context"
+
+	"github.com/google/wire"
+	"github.com/xxl-job/xxl-job-executor-go"
+	"[[.Module]]/biz/app"
+	"[[.Module]]/biz/consts"
+	cronsdk "glprivate.quanyougame.net/backend/core-sdk-go/cron"
+	"glprivate.quanyougame.net/backend/core-sdk-go/zaplog"
+	"go.uber.org/zap"
+)
+
+// CronSet 定时任务 wire provider 集合。
+var CronSet = wire.NewSet(NewCron, NewTask)
+
+// NewCron 创建 XXL-Job 执行器并注册全部定时任务。
+// 任务由 XXL-Job 调度中心外部触发，不在进程内自循环。
+func NewCron(t *Task) (xxl.Executor, error) {
+	return cronsdk.NewCron(
+		consts.CronAlias,
+		consts.CronAppName,
+		t.ExampleTask,
+	)
+}
+
+// Task 定时任务处理器，注入应用层依赖执行业务逻辑。
+type Task struct {
+	greeterApp *app.GreeterApp
+}
+
+// NewTask 创建定时任务处理器。
+func NewTask(greeterApp *app.GreeterApp) *Task {
+	return &Task{greeterApp: greeterApp}
+}
+
+// ExampleTask 示例定时任务：检测数据库连通性。
+// 在 XXL-Job 调度中心注册同名 JobHandler：[[.AppName]]:example
+func (t *Task) ExampleTask(exec xxl.Executor) {
+	exec.RegTask(consts.ExampleCronTaskName, func(ctx context.Context, param *xxl.RunReq) string {
+		log := zaplog.Log(ctx)
+		if err := t.greeterApp.PingDB(ctx); err != nil {
+			log.Error("example cron task: mysql ping failed", zap.Error(err))
+			return consts.CronFailed
+		}
+		if err := t.greeterApp.PingMongo(ctx); err != nil {
+			log.Error("example cron task: mongo ping failed", zap.Error(err))
+			return consts.CronFailed
+		}
+		log.Info("example cron task completed")
+		return consts.CronSuccess
+	})
+}

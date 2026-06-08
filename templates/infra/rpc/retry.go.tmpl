@@ -1,0 +1,63 @@
+package rpc
+
+import (
+	"context"
+	"strings"
+	"time"
+
+	"glprivate.quanyougame.net/backend/core-sdk-go/zaplog"
+	"go.uber.org/zap"
+	ggrpc "google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+const (
+	rpcMaxAttempts  = 3
+	rpcRetryBackoff = 80 * time.Millisecond
+)
+
+// unaryRetryInterceptor 针对瞬时传输层错误做轻量重试，避免下游滚动发布或短暂抖动直接打穿业务请求。
+func unaryRetryInterceptor(serviceName string) ggrpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply any, cc *ggrpc.ClientConn, invoker ggrpc.UnaryInvoker, opts ...ggrpc.CallOption) error {
+		var err error
+		for attempt := 1; attempt <= rpcMaxAttempts; attempt++ {
+			err = invoker(ctx, method, req, reply, cc, opts...)
+			if !shouldRetryRPC(err, attempt) {
+				return err
+			}
+
+			backoff := time.Duration(attempt) * rpcRetryBackoff
+			zaplog.Log(ctx).Warn("transient grpc error, retrying",
+				zap.String("service", serviceName),
+				zap.String("method", method),
+				zap.String("target", cc.Target()),
+				zap.Int("next_attempt", attempt+1),
+				zap.Duration("backoff", backoff),
+				zap.Error(err),
+			)
+
+			timer := time.NewTimer(backoff)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return err
+			case <-timer.C:
+			}
+		}
+		return err
+	}
+}
+
+// shouldRetryRPC 只放行网络抖动、连接预热失败这类可恢复错误。
+func shouldRetryRPC(err error, attempt int) bool {
+	if err == nil || attempt >= rpcMaxAttempts {
+		return false
+	}
+	if status.Code(err) == codes.Unavailable {
+		return true
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "error reading server preface") ||
+		strings.Contains(msg, "use of closed network connection")
+}

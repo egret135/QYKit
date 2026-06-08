@@ -1,0 +1,8 @@
+package utils
+
+import "fmt"
+
+// GenEndpoint 根据服务名生成 kratos discovery endpoint。
+func GenEndpoint(serviceName string) string {
+	return fmt.Sprintf("discovery:///%s", serviceName)
+}

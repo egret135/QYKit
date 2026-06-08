@@ -1,0 +1,18 @@
+package mongoDB
+
+import (
+	"github.com/google/wire"
+	mongosdk "glprivate.quanyougame.net/backend/core-sdk-go/mongo"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+// defaultMongoAlias 为该服务在 Nacos 中对应的 MongoDB 配置别名，按实际情况修改。
+const defaultMongoAlias = "[[.AppName]]"
+
+// MongoDaoSet MongoDB 连接 wire provider 集合。
+var MongoDaoSet = wire.NewSet(NewMongoDB)
+
+// NewMongoDB 创建 MongoDB 数据库连接。
+func NewMongoDB() (*mongo.Database, error) {
+	return mongosdk.NewMongoDB(defaultMongoAlias)
+}

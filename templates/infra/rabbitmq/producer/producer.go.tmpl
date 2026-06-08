@@ -1,0 +1,53 @@
+package producer
+
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/google/wire"
+	"glprivate.quanyougame.net/backend/core-sdk-go/rabbitmq"
+	"glprivate.quanyougame.net/backend/core-sdk-go/zaplog"
+	"go.uber.org/zap"
+
+	"[[.Module]]/infra/rabbitmq/consts"
+)
+
+// ProducerProviderSet rabbitmq 生产者 wire provider 集合。
+var ProducerProviderSet = wire.NewSet(NewExampleProducer)
+
+// ExampleMessage 示例消息体。
+type ExampleMessage struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+// ExampleProducer 示例 RabbitMQ 生产者。
+type ExampleProducer struct {
+	rabbitMQ *rabbitmq.RabbitMQ
+}
+
+// NewExampleProducer 创建示例生产者。
+func NewExampleProducer(rabbitMQ *rabbitmq.RabbitMQ) *ExampleProducer {
+	return &ExampleProducer{rabbitMQ: rabbitMQ}
+}
+
+// Publish 发布一条示例消息。
+func (p *ExampleProducer) Publish(ctx context.Context, msg *ExampleMessage) error {
+	log := zaplog.Log(ctx).With(zap.Int64("id", msg.ID))
+	body, err := json.Marshal(msg)
+	if err != nil {
+		log.Error("failed to marshal example message", zap.Error(err))
+		return err
+	}
+
+	if err = p.rabbitMQ.WithContext(ctx).
+		Exchange(consts.TopicExchange).
+		RoutingKey(consts.ExampleRoutingKey).
+		Queue(consts.ExampleQueueName).
+		Publish(body); err != nil {
+		log.Error("failed to publish example message", zap.Error(err))
+		return err
+	}
+	log.Info("successfully published example message")
+	return nil
+}

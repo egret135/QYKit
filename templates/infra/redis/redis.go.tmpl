@@ -1,0 +1,33 @@
+package redis
+
+import (
+	"github.com/redis/go-redis/v9"
+	sdk "glprivate.quanyougame.net/backend/core-sdk-go/redis"
+	"glprivate.quanyougame.net/backend/core-sdk-go/zaplog"
+)
+
+// alias 为该服务在 Nacos 中对应的 redis 配置别名，按实际情况修改。
+const alias = "[[.AppName]]"
+
+var rdb *redis.ClusterClient
+
+// NewRedisClient 创建 redis 集群客户端（同时作为 asynq 任务队列的底层存储）。
+func NewRedisClient() (*redis.ClusterClient, func(), error) {
+	var err error
+	rdb, err = sdk.NewRedisClientWithMonitor(alias, &redis.ClusterOptions{
+		PoolSize: 40,
+	})
+	if err != nil {
+		panic(err)
+	}
+	cleanup := func() {
+		zaplog.Log().Info("closing the redis resources")
+		_ = rdb.Close()
+	}
+	return rdb, cleanup, nil
+}
+
+// GetRedisClient 获取全局 redis 客户端。
+func GetRedisClient() *redis.ClusterClient {
+	return rdb
+}

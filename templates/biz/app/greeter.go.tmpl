@@ -1,0 +1,73 @@
+package app
+
+import (
+	"context"
+
+	"github.com/redis/go-redis/v9"
+
+	"[[.Module]]/biz/domain"
+	mysqlDao "[[.Module]]/infra/mysql/dao"
+	mongoDao "[[.Module]]/infra/mongoDB/dao"
+	rabbitProducer "[[.Module]]/infra/rabbitmq/producer"
+	"[[.Module]]/infra/rpc"
+	asynqProducer "[[.Module]]/infra/task/producer"
+)
+
+// GreeterApp 应用层用例：编排领域服务，并协作 mysql / mongo / redis / rabbitmq / asynq / rpc 等基础设施。
+type GreeterApp struct {
+	greeter         *domain.GreeterService
+	exampleDao      *mysqlDao.ExampleDao
+	exampleMongoDao *mongoDao.ExampleMongoDao
+	rdb             *redis.ClusterClient
+	mqProducer      *rabbitProducer.ExampleProducer
+	taskProducer    *asynqProducer.ExampleProducer
+}
+
+// NewGreeterApp 构造应用层服务，注入领域服务与基础设施依赖。
+func NewGreeterApp(
+	greeter *domain.GreeterService,
+	exampleDao *mysqlDao.ExampleDao,
+	exampleMongoDao *mongoDao.ExampleMongoDao,
+	rdb *redis.ClusterClient,
+	mqProducer *rabbitProducer.ExampleProducer,
+	taskProducer *asynqProducer.ExampleProducer,
+) *GreeterApp {
+	return &GreeterApp{
+		greeter:         greeter,
+		exampleDao:      exampleDao,
+		exampleMongoDao: exampleMongoDao,
+		rdb:             rdb,
+		mqProducer:      mqProducer,
+		taskProducer:    taskProducer,
+	}
+}
+
+// Greet 应用层入口，对外暴露用例。
+func (a *GreeterApp) Greet(_ context.Context, name string) string {
+	return a.greeter.Hello(name)
+}
+
+// PingDB 检测 MySQL 连通性。
+func (a *GreeterApp) PingDB(ctx context.Context) error {
+	return a.exampleDao.Ping(ctx)
+}
+
+// PingMongo 检测 MongoDB 连通性。
+func (a *GreeterApp) PingMongo(ctx context.Context) error {
+	return a.exampleMongoDao.Ping(ctx)
+}
+
+// GetUserBalance 演示通过 RPC 调用用户服务获取余额。
+func (a *GreeterApp) GetUserBalance(ctx context.Context, userID int64) (float64, error) {
+	return rpc.GetUserClient().GetBalance(ctx, userID)
+}
+
+// PublishExampleMessage 演示发布一条 RabbitMQ 消息。
+func (a *GreeterApp) PublishExampleMessage(ctx context.Context, id int64, name string) error {
+	return a.mqProducer.Publish(ctx, &rabbitProducer.ExampleMessage{ID: id, Name: name})
+}
+
+// EnqueueExampleTask 演示投递一条 asynq 异步任务（底层走 redis）。
+func (a *GreeterApp) EnqueueExampleTask(ctx context.Context, id int64, name string) error {
+	return a.taskProducer.Produce(ctx, &asynqProducer.ExamplePayload{ID: id, Name: name})
+}

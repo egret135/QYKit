@@ -1,0 +1,32 @@
+package nacos
+
+import (
+	sdk "glprivate.quanyougame.net/backend/core-sdk-go/nacos"
+
+	"[[.Module]]/infra/conf"
+)
+
+var cfCenter *sdk.ConfCenter // 配置中心 client
+
+// NewConfCenter 初始化 Nacos 配置中心客户端。
+func NewConfCenter(conf *conf.Nacos) *sdk.ConfCenter {
+	cc := conf.ConfCenter
+	cfCenter = sdk.NewConfCenter(
+		cc.IpAddress,
+		cc.Port,
+		conf.NamespaceId,
+	)
+	return cfCenter
+}
+
+// GetConfCenter 获取配置中心客户端。
+func GetConfCenter() *sdk.ConfCenter {
+	return cfCenter
+}
+
+const (
+	// DataId 业务在配置中心的 data id，按需修改。
+	DataId = "[[.AppName]]"
+	// Group 配置分组。
+	Group = "DEFAULT_GROUP"
+)

@@ -1,0 +1,122 @@
+package conf
+
+import (
+	"fmt"
+
+	"github.com/go-kratos/kratos/v2/config"
+	"github.com/go-kratos/kratos/v2/config/env"
+	"github.com/go-kratos/kratos/v2/config/file"
+	"github.com/google/wire"
+
+	"[[.Module]]/pkg/utils"
+)
+
+// ConfSet 配置相关的 wire provider 集合。
+var ConfSet = wire.NewSet(
+	LoadFileConf,
+	NewServerConf,
+	NewNacosConf,
+	NewRuntimeMonitorConf,
+)
+
+// Bootstrap 是整个应用的根配置。
+type Bootstrap struct {
+	Namespace      string          `json:"namespace"`
+	Server         *Server         `json:"server"`
+	Nacos          *Nacos          `json:"nacos"`
+	Log            *Log            `json:"log"`
+	RuntimeMonitor *RuntimeMonitor `json:"runtime_monitor"`
+}
+
+// Server HTTP / gRPC 服务配置。
+type Server struct {
+	ServerName string `json:"server_name"`
+	HTTP       Listen `json:"http"`
+	GRPC       Listen `json:"grpc"`
+}
+
+// Listen 单个监听端点配置。
+type Listen struct {
+	Network string `json:"network"`
+	Addr    string `json:"addr"`
+	Timeout string `json:"timeout"`
+}
+
+// Nacos 服务注册与配置中心配置。
+type Nacos struct {
+	Registrar   Endpoint `json:"registrar"`
+	ConfCenter  Endpoint `json:"confCenter"`
+	NamespaceId string   `json:"namespace_id"`
+	LogDir      string   `json:"log_dir"`
+	CacheDir    string   `json:"cache_dir"`
+	LogLevel    string   `json:"log_level"`
+}
+
+// Endpoint Nacos 节点地址。
+type Endpoint struct {
+	IpAddress string `json:"ip_address"`
+	Port      uint64 `json:"port"`
+}
+
+// Log 日志配置。
+type Log struct {
+	Debug   bool   `json:"debug"`
+	LogPath string `json:"log_path"`
+}
+
+// RuntimeMonitor 运行时资源监控配置。
+type RuntimeMonitor struct {
+	Enabled             bool   `json:"enabled"`
+	MemoryLimitMb       uint64 `json:"memory_limit_mb"`
+	DumpPath            string `json:"dump_path"`
+	MemoryThreshold     uint32 `json:"memory_threshold"`
+	CpuThreshold        uint32 `json:"cpu_threshold"`
+	GoroutineThreshold  uint32 `json:"goroutine_threshold"`
+}
+
+var bc *Bootstrap
+
+// LoadFileConf 根据 APP_ENV 加载 configs/config_<env>.yaml，并支持 KRATOS_ 前缀环境变量覆盖。
+func LoadFileConf() *Bootstrap {
+	confFile := fmt.Sprintf("./configs/config_%s.yaml", utils.GetAppEnv())
+	c := config.New(
+		config.WithSource(
+			env.NewSource("KRATOS_"),
+			file.NewSource(confFile),
+		),
+	)
+	defer func(c config.Config) {
+		if err := c.Close(); err != nil {
+			panic(err)
+		}
+	}(c)
+	if err := c.Load(); err != nil {
+		panic(err)
+	}
+	var tmp Bootstrap
+	if err := c.Scan(&tmp); err != nil {
+		panic(err)
+	}
+	bc = &tmp
+	return bc
+}
+
+// NewServerConf 依赖 LoadFileConf 先执行，提取 Server 配置。
+func NewServerConf(b *Bootstrap) *Server {
+	return b.Server
+}
+
+// NewNacosConf 依赖 LoadFileConf 先执行，提取 Nacos 配置。
+func NewNacosConf(b *Bootstrap) *Nacos {
+	return b.Nacos
+}
+
+// NewRuntimeMonitorConf 依赖 LoadFileConf 先执行，提取运行时监控配置。
+func NewRuntimeMonitorConf(b *Bootstrap) *RuntimeMonitor {
+	return b.RuntimeMonitor
+}
+
+// GetServerName 返回当前服务注册名。
+func GetServerName() string {
+	return bc.Server.ServerName
+}

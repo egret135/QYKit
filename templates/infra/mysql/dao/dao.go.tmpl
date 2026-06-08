@@ -1,0 +1,32 @@
+package dao
+
+import (
+	"github.com/google/wire"
+
+	"[[.Module]]/infra/mysql"
+	"gorm.io/gorm"
+)
+
+// ProvideDB 从 Data 中提取 DB，供直接依赖 *gorm.DB 的 DAO 使用。
+func ProvideDB(d *Data) *gorm.DB {
+	return d.DB
+}
+
+// DaoSet MySQL 数据访问层 wire provider 集合。
+// 执行 make gorm_gen 生成 model/query 后，在此追加具体 DAO 构造函数。
+var DaoSet = wire.NewSet(
+	NewData,
+	ProvideDB,
+	NewExampleDao,
+)
+
+// Data 封装数据库连接。
+type Data struct {
+	DB *gorm.DB
+}
+
+// NewData 初始化 MySQL 连接。
+func NewData() (*Data, error) {
+	db := mysql.NewMySQL()
+	return &Data{DB: db}, nil
+}

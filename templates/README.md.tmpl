@@ -1,0 +1,138 @@
+# [[.AppName]]
+
+基于 [Go](https://go.dev/) 与 [Kratos](https://go-kratos.dev/) 框架的微服务，目录结构遵循 `kbfs_prediction` 约定，并集成拳游内部 `core-sdk-go` 基础设施。
+
+## 技术栈
+
+- 语言：Go (>= 1.23)
+- 框架：Kratos v2
+- 依赖注入：google/wire
+- 服务注册 / 配置中心：Nacos（`core-sdk-go/nacos`）
+- 缓存 / 异步任务队列：Redis + asynq（`core-sdk-go/redis`、`core-sdk-go/task`）
+- 消息队列：RabbitMQ（`core-sdk-go/rabbitmq`）
+- 配置：分环境 yaml + Nacos 覆盖（`infra/conf`）
+- 日志：zaplog（`infra/logger`）
+- 健康检查 / 指标：health + Prometheus（`infra/health`、`infra/metrics`）
+- 数据库：MySQL + gorm.io/gen（`infra/mysql`）、MongoDB（`infra/mongoDB`）
+- RPC 调用：gRPC + Nacos 服务发现（`idl_gen`）
+- 定时任务：XXL-Job（`core-sdk-go/cron`）
+- 日志：`core-sdk-go/zaplog`
+
+## 目录结构
+
+```bash
+.
+├── cmd/
+│   ├── custom/             # gorm_gen 代码生成入口
+│   └── services/
+│       ├── api/            # API 服务入口（生产者侧）：main + wire
+│       └── task/           # Task 服务入口（消费者侧）：main + wire
+├── biz/
+│   ├── handler/            # 接入层（HTTP / gRPC）
+│   ├── app/                # 应用层（用例编排）
+│   ├── domain/             # 领域层（核心业务）
+│   ├── cron/               # 定时任务（XXL-Job）
+│   └── consts/             # 常量
+├── infra/
+│   ├── conf/               # 配置加载与定义
+│   ├── logger/             # zaplog 日志
+│   ├── health/             # 健康检查
+│   ├── metrics/            # Prometheus + OTel 指标
+│   ├── nacos/              # 服务注册 + 配置中心
+│   ├── redis/              # redis 集群客户端
+│   ├── task/               # asynq 任务（client/server + producer/consumer）
+│   ├── rabbitmq/           # rabbitmq（client + producer/consumer）
+│   ├── mysql/              # MySQL 连接 + dao + po/query（gorm_gen 输出）
+│   ├── mongoDB/            # MongoDB 连接 + dao
+│   └── rpc/                # 外部 RPC 客户端（Nacos 服务发现）
+├── pkg/utils/              # 通用工具
+├── server/                 # HTTP / gRPC server 装配
+├── configs/                # 分环境配置 config_<env>.yaml
+├── docker/                 # docker-compose + init.sql
+├── Dockerfile
+├── Makefile
+└── go.mod
+```
+
+## 快速开始
+
+```bash
+# 私有模块需要配置 GOPRIVATE（拳游内部 git）
+export GOPRIVATE=glprivate.quanyougame.net,gl.quanyougame.net
+
+make init
+go mod tidy
+
+# 生成 wire 注入代码（已附带可用的 wire_gen.go）
+make generate
+
+# 从数据库表生成 gorm model/query（需先配置 cmd/custom/custom.go 中的表名与 mysql alias）
+make gorm_gen
+
+# 运行 API 服务（生产者侧）
+make run-api
+
+# 运行 Task 服务（消费者侧：rabbitmq 消费者 + asynq 任务消费者）
+make run-task
+```
+
+## 两个服务的分工
+
+- **api**：对外提供 HTTP/gRPC 接口，向 RabbitMQ 发布消息、向 asynq(redis) 投递异步任务。
+- **task**：常驻消费者进程，启动时拉起 RabbitMQ 队列消费者、asynq 任务消费者与 XXL-Job 执行器。
+
+二者复用同一套 `biz` / `infra` 代码，仅在 `cmd/services/*/wire.go` 中装配不同的 provider。
+
+## 基础设施接入点
+
+| 能力 | 位置 | 说明 |
+| --- | --- | --- |
+| 配置加载 | `infra/conf/` | 分环境 yaml + `KRATOS_` 环境变量覆盖 |
+| 日志 | `infra/logger/` | `zaplog` 全局日志 |
+| 健康检查 | `infra/health/` | `/ping` 端点 |
+| Prometheus | `infra/metrics/` | `/metrics` 端点 + HTTP/gRPC 中间件 |
+| 配置中心 | `infra/nacos/conf_center.go` | `NewConfCenter` 读取 Nacos 配置 |
+| 服务注册 | `infra/nacos/registrar.go` | `NewRegistrar`，`APP_ENV` 非空时自动注册 |
+| Redis | `infra/redis/redis.go` | `NewRedisClient`，改 `alias` 对应 Nacos 配置 |
+| asynq 队列 | `infra/task/` | `producer` 投递、`consumer` 消费，改 `consts.Alias` |
+| RabbitMQ | `infra/rabbitmq/` | `producer` 发布、`consumer` 订阅，改 `consts` 中交换机/队列 |
+| MySQL | `infra/mysql/` | `NewMySQL` 连接，改 `alias` 对应 Nacos 配置 |
+| MongoDB | `infra/mongoDB/` | `NewMongoDB` 连接，改 `defaultMongoAlias` |
+| gorm_gen | `cmd/custom/custom.go` | `make gorm_gen` 生成 `infra/mysql/po` 与 `infra/mysql/query` |
+| RPC 调用 | `infra/rpc/` | `InitRpcClient()` 通过 Nacos 发现调用其他 gRPC 服务 |
+| 定时任务 | `biz/cron/` | XXL-Job 执行器，仅在 task 服务中装配 |
+
+## 定时任务（XXL-Job）
+
+定时任务仅在 **task 服务** 中运行，通过 `core-sdk-go/cron` 接入 XXL-Job 调度中心：
+
+1. 在 `biz/consts/consts.go` 中配置 `CronAlias`（Nacos 配置别名）和 `CronAppName`（执行器名称）。
+2. 在 `biz/cron/cron.go` 的 `NewCron(...)` 中注册任务方法，并在对应方法内通过 `exec.RegTask` 绑定 JobHandler。
+3. 在 XXL-Job 调度中心创建同名 JobHandler（如 `[[.AppName]]:example`）并配置 Cron 表达式。
+
+新增定时任务：在 `biz/cron/cron.go` 添加 `Task` 方法，并在 `NewCron` 参数列表中登记。
+
+## gorm_gen 使用
+
+1. 在 `cmd/custom/custom.go` 中修改 `mysqlAlias` 和 `g.ApplyBasic(...)` 中的表名。
+2. 确保能访问 Nacos 配置中心（脚本启动时会连接 Nacos 读取 MySQL DSN）。
+3. 执行 `make gorm_gen`，代码自动生成到 `infra/mysql/po/` 与 `infra/mysql/query/`。
+4. 在 `infra/mysql/dao/dao.go` 的 `DaoSet` 中追加新 DAO 构造函数。
+
+## RPC 调用
+
+服务启动时在 `main` 中调用 `rpc.InitRpcClient()`，自动通过 Nacos 服务发现连接：
+
+- 用户服务：`qy.kbfs.user.grpc`（`infra/rpc/user.go`）
+- 赛事元数据：`qy.fantasy.sports_meta.grpc`（`infra/rpc/sports_meta.go`）
+
+新增 RPC 客户端：在 `infra/rpc/` 添加文件，并在 `client.go` 的 `InitRpcClient()` 中注册。
+
+## 配置
+
+配置文件按环境拆分：`configs/config_<APP_ENV>.yaml`，默认 `dev`。
+
+```bash
+APP_ENV=prod ./bin/api
+APP_ENV=prod ./bin/task
+```

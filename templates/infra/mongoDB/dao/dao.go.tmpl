@@ -1,0 +1,6 @@
+package dao
+
+import "github.com/google/wire"
+
+// MongoDaoSet MongoDB 数据访问层 wire provider 集合。
+var MongoDaoSet = wire.NewSet(NewExampleMongoDao)

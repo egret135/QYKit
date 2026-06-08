@@ -1,0 +1,59 @@
+package main
+
+import (
+	"os"
+
+	"github.com/go-kratos/kratos/v2"
+	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/registry"
+	kgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
+	khttp "github.com/go-kratos/kratos/v2/transport/http"
+	nacosSdk "glprivate.quanyougame.net/backend/core-sdk-go/nacos"
+	"glprivate.quanyougame.net/backend/core-sdk-go/zaplog"
+
+	"[[.Module]]/infra/conf"
+	"[[.Module]]/infra/metrics"
+	"[[.Module]]/infra/rpc"
+	"[[.Module]]/pkg/utils"
+)
+
+const serviceType = "api"
+
+// Version 由构建时通过 -ldflags 注入。
+var Version = "dev"
+
+var id, _ = os.Hostname()
+
+// newApp 组装 Kratos 应用，并按环境决定是否向 Nacos 注册。
+func newApp(s *conf.Server, logger log.Logger, _ *metrics.Metrics, r registry.Registrar, _ *nacosSdk.ConfCenter,
+	gs *kgrpc.Server, hs *khttp.Server) *kratos.App {
+	opts := []kratos.Option{
+		kratos.ID(id),
+		kratos.Name(s.ServerName),
+		kratos.Version(Version),
+		kratos.Metadata(map[string]string{"service_type": serviceType}),
+		kratos.Logger(logger),
+		kratos.Server(gs, hs),
+	}
+	// 本地启动（未设置 APP_ENV）的服务不向 Nacos 做服务注册。
+	if utils.GetRawAppEnv() != "" {
+		opts = append(opts, kratos.Registrar(r))
+	}
+	return kratos.New(opts...)
+}
+
+func main() {
+	app, cleanup, err := wireApp()
+	if err != nil {
+		panic(err)
+	}
+	defer cleanup()
+
+	// 服务发现，初始化 RPC 客户端（需在 Nacos 注册中心就绪后调用）。
+	rpc.InitRpcClient()
+
+	zaplog.Log().Info("success start API server")
+	if err := app.Run(); err != nil {
+		panic(err)
+	}
+}

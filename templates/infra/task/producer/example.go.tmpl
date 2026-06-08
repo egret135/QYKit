@@ -1,0 +1,48 @@
+package producer
+
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/google/wire"
+	taskSdk "glprivate.quanyougame.net/backend/core-sdk-go/task"
+	"glprivate.quanyougame.net/backend/core-sdk-go/zaplog"
+	"go.uber.org/zap"
+
+	taskConsts "[[.Module]]/infra/task/consts"
+)
+
+// ProducerSet asynq 生产者 wire provider 集合。
+var ProducerSet = wire.NewSet(NewExampleProducer)
+
+// ExamplePayload 示例任务负载。
+type ExamplePayload struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+// ExampleProducer 示例异步任务生产者。
+type ExampleProducer struct {
+	cli *taskSdk.TaskClient
+}
+
+// NewExampleProducer 创建示例任务生产者。
+func NewExampleProducer(cli *taskSdk.TaskClient) *ExampleProducer {
+	return &ExampleProducer{cli: cli}
+}
+
+// Produce 投递一条示例异步任务到 redis 队列。
+func (p *ExampleProducer) Produce(ctx context.Context, payload *ExamplePayload) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		zaplog.Log(ctx).Error("marshal example task payload failed", zap.Error(err))
+		return err
+	}
+	if err = p.cli.Produce(ctx, taskConsts.ExampleTask, body); err != nil {
+		zaplog.Log(ctx).Error("produce example task failed",
+			zap.String("queue", taskConsts.ExampleTask), zap.Error(err))
+		return err
+	}
+	zaplog.Log(ctx).Info("produce example task success", zap.Int64("id", payload.ID))
+	return nil
+}

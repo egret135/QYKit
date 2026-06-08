@@ -1,0 +1,35 @@
+package nacos
+
+import (
+	"github.com/go-kratos/kratos/contrib/registry/nacos/v2"
+	"github.com/go-kratos/kratos/v2/registry"
+	"github.com/google/wire"
+	sdk "glprivate.quanyougame.net/backend/core-sdk-go/nacos"
+
+	"[[.Module]]/infra/conf"
+)
+
+var (
+	// RegistrarSet 服务注册 + 配置中心 wire provider 集合。
+	RegistrarSet = wire.NewSet(NewRegistrar, NewConfCenter)
+	r            *nacos.Registry // 服务注册中心 client
+)
+
+// NewRegistrar 初始化 Nacos 服务注册中心。
+func NewRegistrar(conf *conf.Nacos) registry.Registrar {
+	registrar := conf.Registrar
+	r = sdk.NewRegistrar(
+		registrar.IpAddress,
+		registrar.Port,
+		conf.NamespaceId,
+		sdk.WithLogDir(conf.LogDir),
+		sdk.WithCacheDir(conf.CacheDir),
+		sdk.WithLogLevel(conf.LogLevel),
+	)
+	return r
+}
+
+// GetRegistrar 获取服务注册中心 client。
+func GetRegistrar() *nacos.Registry {
+	return r
+}

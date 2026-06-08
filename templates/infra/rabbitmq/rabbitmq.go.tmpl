@@ -1,0 +1,12 @@
+package rabbitmq
+
+import (
+	"glprivate.quanyougame.net/backend/core-sdk-go/rabbitmq"
+
+	"[[.Module]]/infra/conf"
+)
+
+// NewRabbitMQ 基于服务名从内部配置初始化 RabbitMQ 客户端。
+func NewRabbitMQ() *rabbitmq.RabbitMQ {
+	return rabbitmq.NewRabbitMQByInternalConf(conf.GetServerName())
+}
