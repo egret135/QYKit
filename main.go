@@ -1,9 +1,8 @@
-// Command scaffold 按照本仓库 (kbfs_prediction) 的目录约定，一键生成一个新的
-// Kratos 微服务骨架。
+// Command QYKit 按照拳游 Kratos 微服务约定，一键生成新的项目骨架。
 //
-// 用法：
+// 用法（在 QYKit 项目根目录执行）：
 //
-//	go run ./util/scaffold -module gl.quanyougame.net/backend/kbfs_demo -name kbfs_demo -out ../kbfs_demo
+//	go run . -module gl.quanyougame.net/backend/kbfs_demo -name kbfs_demo -out ../kbfs_demo
 //
 // 参数：
 //
