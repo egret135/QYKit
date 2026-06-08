@@ -1,0 +1,22 @@
+package app
+
+import (
+	"context"
+
+	"[[.Module]]/biz/domain"
+)
+
+// GreeterApp 应用层用例：编排领域服务，处理事务/外部依赖协作。
+type GreeterApp struct {
+	greeter *domain.GreeterService
+}
+
+// NewGreeterApp 构造应用层服务。
+func NewGreeterApp(greeter *domain.GreeterService) *GreeterApp {
+	return &GreeterApp{greeter: greeter}
+}
+
+// Greet 应用层入口，对外暴露用例。
+func (a *GreeterApp) Greet(_ context.Context, name string) string {
+	return a.greeter.Hello(name)
+}

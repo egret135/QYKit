@@ -1,0 +1,8 @@
+package handler
+
+import "github.com/google/wire"
+
+// HandlerSet 接入层 wire provider 集合。
+var HandlerSet = wire.NewSet(
+	NewGreeterHandler,
+)

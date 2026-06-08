@@ -1,0 +1,13 @@
+-- [[.AppName]] 初始化 SQL
+-- 在此添加建库、建表语句。容器首次启动时自动执行。
+
+CREATE DATABASE IF NOT EXISTS `[[.AppName]]` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+
+USE `[[.AppName]]`;
+
+-- 示例表
+-- CREATE TABLE IF NOT EXISTS `example` (
+--   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+--   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+--   PRIMARY KEY (`id`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

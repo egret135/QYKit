@@ -1,0 +1,20 @@
+package domain
+
+import "fmt"
+
+// GreeterService 是一个示例领域服务，演示分层结构。
+// 实际开发中请替换为你的核心业务逻辑。
+type GreeterService struct{}
+
+// NewGreeterService 构造领域服务。
+func NewGreeterService() *GreeterService {
+	return &GreeterService{}
+}
+
+// Hello 返回问候语，承载核心领域规则。
+func (s *GreeterService) Hello(name string) string {
+	if name == "" {
+		name = "world"
+	}
+	return fmt.Sprintf("hello, %s", name)
+}

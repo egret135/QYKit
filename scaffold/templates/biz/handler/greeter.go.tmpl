@@ -1,0 +1,38 @@
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+
+	khttp "github.com/go-kratos/kratos/v2/transport/http"
+
+	"[[.Module]]/biz/app"
+)
+
+// GreeterHandler 接入层：把 HTTP/gRPC 请求适配到应用层用例。
+type GreeterHandler struct {
+	greeterApp *app.GreeterApp
+}
+
+// NewGreeterHandler 构造接入层 handler。
+func NewGreeterHandler(greeterApp *app.GreeterApp) *GreeterHandler {
+	return &GreeterHandler{greeterApp: greeterApp}
+}
+
+// RegisterHTTP 在 HTTP server 上注册路由。
+func (h *GreeterHandler) RegisterHTTP(srv *khttp.Server) {
+	r := srv.Route("/")
+	r.GET("/ping", h.ping)
+	r.GET("/hello/{name}", h.hello)
+}
+
+func (h *GreeterHandler) ping(ctx khttp.Context) error {
+	return ctx.JSON(http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (h *GreeterHandler) hello(ctx khttp.Context) error {
+	name := ctx.Vars().Get("name")
+	msg := h.greeterApp.Greet(ctx.Request().Context(), name)
+	ctx.Response().Header().Set("Content-Type", "application/json")
+	return json.NewEncoder(ctx.Response()).Encode(map[string]string{"message": msg})
+}

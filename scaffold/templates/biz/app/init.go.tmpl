@@ -1,0 +1,8 @@
+package app
+
+import "github.com/google/wire"
+
+// AppSet 应用层 wire provider 集合。
+var AppSet = wire.NewSet(
+	NewGreeterApp,
+)

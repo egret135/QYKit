@@ -1,0 +1,20 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: [[.AppName]]-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: Passw0rd
+      MYSQL_DATABASE: [[.AppName]]
+      MYSQL_USER: qy
+      MYSQL_PASSWORD: Passw0rd
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  redis:
+    image: redis:latest
+    container_name: [[.AppName]]-redis
+    ports:
+      - "6379:6379"
+    restart: always

@@ -1,0 +1,10 @@
+server:
+  server_name: [[.ServerName]]
+  http:
+    addr: 0.0.0.0:${HTTP_PORT:8000}
+    timeout: 10s
+  grpc:
+    addr: 0.0.0.0:${RPC_PORT:9000}
+    timeout: 10s
+log:
+  debug: false

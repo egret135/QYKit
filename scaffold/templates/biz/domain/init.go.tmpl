@@ -1,0 +1,9 @@
+package domain
+
+import "github.com/google/wire"
+
+// ServiceSet 领域层 wire provider 集合。
+// 新增领域服务时，在此登记其构造函数。
+var ServiceSet = wire.NewSet(
+	NewGreeterService,
+)

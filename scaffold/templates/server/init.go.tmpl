@@ -1,0 +1,9 @@
+package server
+
+import "github.com/google/wire"
+
+// ServerSet server 装配的 wire provider 集合。
+var ServerSet = wire.NewSet(
+	NewHTTPServer,
+	NewGRPCServer,
+)

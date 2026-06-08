@@ -1,0 +1,51 @@
+package main
+
+import (
+	"os"
+
+	"github.com/go-kratos/kratos/v2"
+	"github.com/go-kratos/kratos/v2/log"
+	kgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
+	khttp "github.com/go-kratos/kratos/v2/transport/http"
+
+	"[[.Module]]/infra/conf"
+)
+
+// Version 由构建时通过 -ldflags 注入。
+var Version = "dev"
+
+var id, _ = os.Hostname()
+
+// newLogger 构造全局日志器。
+func newLogger() log.Logger {
+	return log.With(log.NewStdLogger(os.Stdout),
+		"ts", log.DefaultTimestamp,
+		"caller", log.DefaultCaller,
+		"service.id", id,
+		"service.version", Version,
+	)
+}
+
+// newApp 组装 Kratos 应用。
+func newApp(s *conf.Server, logger log.Logger, gs *kgrpc.Server, hs *khttp.Server) *kratos.App {
+	return kratos.New(
+		kratos.ID(id),
+		kratos.Name(s.ServerName),
+		kratos.Version(Version),
+		kratos.Logger(logger),
+		kratos.Server(gs, hs),
+	)
+}
+
+func main() {
+	app, cleanup, err := wireApp()
+	if err != nil {
+		panic(err)
+	}
+	defer cleanup()
+
+	log.Info("success start API server")
+	if err := app.Run(); err != nil {
+		panic(err)
+	}
+}
