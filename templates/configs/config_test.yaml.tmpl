@@ -7,6 +7,9 @@ server:
   grpc:
     addr: 0.0.0.0:${RPC_PORT}
     timeout: 10s
+  task_http:
+    addr: 0.0.0.0:${HTTP_PORT}
+    timeout: 10s
 nacos:
   registrar:
     ip_address: ${NACOS_IP_ADDRESS}

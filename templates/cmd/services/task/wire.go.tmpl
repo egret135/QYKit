@@ -12,7 +12,6 @@ import (
 	"[[.Module]]/biz/app"
 	"[[.Module]]/biz/cron"
 	"[[.Module]]/biz/domain"
-	"[[.Module]]/biz/handler"
 	"[[.Module]]/infra/conf"
 	"[[.Module]]/infra/logger"
 	"[[.Module]]/infra/metrics"
@@ -50,8 +49,8 @@ func wireApp() (*kratos.App, func(), error) {
 		cron.CronSet,
 		domain.ServiceSet,
 		app.AppSet,
-		handler.HandlerSet,
-		server.ServerSet,
+		server.NewGRPCServer,
+		server.NewTaskHTTPServer,
 		newApp,
 	))
 }

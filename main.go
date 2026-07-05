@@ -78,6 +78,7 @@ func main() {
 	fmt.Println("下一步：")
 	fmt.Printf("  cd %s\n", outDir)
 	fmt.Println("  go mod tidy")
+	fmt.Println("  make config     # 修改 conf.proto 后重新生成 conf.pb.go")
 	fmt.Println("  make gorm_gen   # 可选：从数据库表生成 model/query")
 	fmt.Println("  make run-api")
 }

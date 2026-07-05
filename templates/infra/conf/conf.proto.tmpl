@@ -1,0 +1,60 @@
+syntax = "proto3";
+package dynamic_conf;
+
+option go_package = "[[.Module]]/infra/conf;conf";
+
+message Bootstrap {
+  string namespace = 1;
+  Server server = 2;
+  Nacos nacos = 3;
+  Log log = 4;
+  RuntimeMonitor runtime_monitor = 5;
+}
+
+message Server {
+  message HTTP {
+    string network = 1;
+    string addr = 2;
+    string timeout = 3;
+  }
+  message GRPC {
+    string network = 1;
+    string addr = 2;
+    string timeout = 3;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+  string server_name = 3;
+  HTTP task_http = 4;  // Task 服务的 HTTP (健康检查、metrics)
+}
+
+message Nacos {
+  message Registrar {
+    string ip_address = 1;
+    uint64 port = 2;
+  }
+  message ConfCenter {
+    string ip_address = 1;
+    uint64 port = 2;
+  }
+  Registrar registrar = 1;
+  ConfCenter confCenter = 2;
+  string namespace_id = 3;
+  string log_dir = 4;
+  string cache_dir = 5;
+  string log_level = 6;
+}
+
+message Log {
+  bool debug = 1;
+  string log_path = 2;
+}
+
+message RuntimeMonitor {
+  bool enabled = 1;
+  uint64 memory_limit_mb = 2;
+  string dump_path = 3;
+  uint32 memory_threshold = 4;
+  uint32 cpu_threshold = 5;
+  uint32 goroutine_threshold = 6;
+}

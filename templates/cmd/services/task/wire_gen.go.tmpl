@@ -12,7 +12,6 @@ import (
 	"[[.Module]]/biz/app"
 	"[[.Module]]/biz/cron"
 	"[[.Module]]/biz/domain"
-	"[[.Module]]/biz/handler"
 	"[[.Module]]/infra/conf"
 	"[[.Module]]/infra/logger"
 	"[[.Module]]/infra/metrics"
@@ -33,7 +32,7 @@ import (
 // wireApp 初始化 Kratos 应用（Task 服务，消费者侧）。
 func wireApp() (*kratos.App, func(), error) {
 	bootstrap := conf.LoadFileConf()
-	confServer := conf.NewServerConf(bootstrap)
+	confServer := conf.NewBootServerConf(bootstrap)
 	nacosConf := conf.NewNacosConf(bootstrap)
 	logLogger := logger.NewLogger(bootstrap)
 	metricsMetrics := metrics.NewMetrics()
@@ -64,8 +63,7 @@ func wireApp() (*kratos.App, func(), error) {
 	exampleTaskProducer := asynqProducer.NewExampleProducer(taskClient)
 	greeterService := domain.NewGreeterService()
 	greeterApp := app.NewGreeterApp(greeterService, exampleDao, exampleMongoDao, clusterClient, exampleProducer, exampleTaskProducer)
-	greeterHandler := handler.NewGreeterHandler(greeterApp)
-	httpServer := server.NewHTTPServer(confServer, greeterHandler)
+	httpServer := server.NewTaskHTTPServer(confServer)
 	grpcServer := server.NewGRPCServer(confServer)
 	taskServer, err := task.NewTaskServer()
 	if err != nil {

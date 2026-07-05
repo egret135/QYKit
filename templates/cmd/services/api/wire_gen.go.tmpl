@@ -30,7 +30,7 @@ import (
 // wireApp 初始化 Kratos 应用（API 服务，生产者侧）。
 func wireApp() (*kratos.App, func(), error) {
 	bootstrap := conf.LoadFileConf()
-	confServer := conf.NewServerConf(bootstrap)
+	confServer := conf.NewBootServerConf(bootstrap)
 	nacosConf := conf.NewNacosConf(bootstrap)
 	logLogger := logger.NewLogger(bootstrap)
 	metricsMetrics := metrics.NewMetrics()

@@ -3,16 +3,36 @@ GOPATH:=$(shell go env GOPATH)
 VERSION=$(shell git describe --tags --always 2>/dev/null || echo "dev")
 COMPOSE_FILE:=./docker/docker-compose.yml
 
+ifeq ($(GOHOSTOS), windows)
+	Git_Bash=$(subst \,/,$(subst cmd\,bin\bash.exe,$(dir $(shell where git))))
+	CONFIG_PROTO_FILES=$(shell $(Git_Bash) -c "find infra/conf -name *.proto")
+else
+	CONFIG_PROTO_FILES=$(shell find infra/conf -name *.proto)
+endif
+
 .PHONY: init
 # init env：安装代码生成所需工具
 init:
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install github.com/google/wire/cmd/wire@latest
+
+.PHONY: config
+# 从 infra/conf/conf.proto 生成 conf.pb.go
+config:
+	protoc --proto_path=./infra/conf \
+	       --go_out=paths=source_relative:./infra/conf \
+	       $(CONFIG_PROTO_FILES)
 
 .PHONY: generate
 # 生成 wire 依赖注入代码、整理依赖
 generate:
 	go generate ./...
 	go mod tidy
+
+.PHONY: fmt
+# 格式化所有 Go 代码
+fmt:
+	gofmt -s -w .
 
 # ==================== 构建命令 ====================
 

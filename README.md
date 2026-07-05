@@ -53,7 +53,7 @@ go run . \
 │   ├── cron/              # 定时任务（XXL-Job）
 │   └── consts/            # 常量
 ├── infra/
-│   ├── conf/              # 配置加载与定义（Nacos / Log / RuntimeMonitor）
+│   ├── conf/              # conf.proto + conf.pb.go + 配置加载
 │   ├── logger/            # zaplog 日志
 │   ├── health/            # 健康检查 /ping
 │   ├── metrics/           # Prometheus + OTel 指标
@@ -66,7 +66,7 @@ go run . \
 │   └── rpc/               # 外部 RPC 客户端（Nacos 服务发现）
 ├── pkg/utils/             # 通用工具
 ├── server/                # HTTP / gRPC server 装配
-├── configs/               # 分环境配置 config_<env>.yaml
+├── configs/               # 分环境配置 config_<env>.yaml（dev/test/prod/pre/perf）
 ├── docker/                # docker-compose + init.sql
 ├── Dockerfile
 ├── Makefile
@@ -80,8 +80,9 @@ go run . \
 ```bash
 cd <out>
 # 私有模块需要配置 GOPRIVATE（拳游内部 git）
-export GOPRIVATE=glprivate.quanyougame.net,gl.quanyougame.net
+export GOPRIVATE=gl.quanyougame.net
 go mod tidy
+make config     # 修改 conf.proto 后重新生成 conf.pb.go（脚手架已预置 conf.pb.go，通常无需执行）
 make generate   # 用 wire 重新生成依赖注入代码（可选，已附带可用的 wire_gen.go）
 make gorm_gen   # 从数据库表生成 gorm model/query（需先配置 cmd/custom/custom.go）
 make run-api    # 启动 API 服务（生产者侧）

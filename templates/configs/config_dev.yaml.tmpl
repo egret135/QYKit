@@ -7,6 +7,9 @@ server:
   grpc:
     addr: 0.0.0.0:${RPC_PORT:9000}
     timeout: 10s
+  task_http:
+    addr: 0.0.0.0:${HTTP_PORT:8001}
+    timeout: 10s
 nacos:
   registrar:
     ip_address: ${NACOS_IP_ADDRESS:http://nscode.quanyougame.net}
@@ -14,6 +17,7 @@ nacos:
   confCenter:
     ip_address: ${NACOS_CONF_IP_ADDRESS:http://nscode.quanyougame.net}
     port: ${NACOS_CONF_PORT:8848}
+  namespace_id: ${NACOS_NAMESPACE_ID:}
   log_level: warn
 log:
   debug: true
